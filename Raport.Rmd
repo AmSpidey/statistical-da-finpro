@@ -14,6 +14,10 @@ library(carData)
 library(car)
 library(MLmetrics)
 library(MASS)
+library("randomForest")
+library(caret)
+library(leaps)
+library(pls)
 ```
 
 ```{r}
@@ -35,7 +39,7 @@ sep_train_test <- function (data.train) {
   smp_size <- floor(0.75 * nrow(trDF))
   
   ## set the seed to make the partition reproducible
-  set.seed(123)
+  set.seed(321)
   train_ind <- sample(seq_len(nrow(trDF)), size = smp_size)
   
   train <- trDF[train_ind, ]
@@ -52,78 +56,185 @@ categorical <- function (data.train) {
 bic <- function (train) {
   n <- dim(train)[1]
   empty.mod <- lm(Y ~ 1, data = train)
-  form <- formul(X)
+  form <- formul(train[-ncol(train)])
   stepAic <- stepAIC(empty.mod, form, k = log(n))
   return(stepAic)
 }
+
+lasso_non_zeroes <- function (lasso_best, yX) {
+  cs <- coef(lasso_best)
+  nonzero <- (which(cs[,1]!=0) - 1)[-1]
+  r <- rownames(as.data.frame(nonzero))
+  subData <- cbind(yX[,nonzero], yX[ncol(yX)])
+  return(subData)
+}
+
 ```
 
 ```{r}
 
 load("~/SADFinal/protein.RData")
+data.train.prot <- data.train
+data.test.prot <- data.test
+data.train.prot[1,]
+# ---------------------PROTEIN
 
-data.train[1, 3]
-dim(data.train)
-
-separated <- sep_train_test(data.train)
-categorical(data.train) # there are no categorical values in protein.
+separated <- sep_train_test(data.train.prot)
+categorical(data.train.prot) # there are no categorical values in protein.
 
 train <- separated$train
 test <- separated$test
 
+data <- train[,-ncol(train)]
+res <- train[,ncol(train)]
+testData <- test[,-ncol(test)]
+testRes <- test[,ncol(test)]
+
+#lasso
+lasso <- cv.glmnet(as.matrix(data), as.matrix(res), nfolds = 10)
+lasso_best <- glmnet(as.matrix(data), as.matrix(res), lambda = lasso$lambda.min)
+subData <- lasso_non_zeroes(lasso_best, as.data.frame(train))
+
+#ridge
+ridge <- cv.glmnet(as.matrix(data), as.matrix(res), alpha = 0, nfolds = 10)
+
+pred <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(testData))
+predRidge <- predict(ridge, s = ridge$lambda.min, newx = as.matrix(testData))
+predTrain <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(data))
+MSETrain <- MSE(predTrain, res)
+MSELassoProt <- MSE(pred, testRes)
+MSERidgeProt <- MSE(predRidge, testRes)
+```
+
+
+```{r}
+# leap forward
+leap <- train(data, res, method = "leapForward", tuneGrid = expand.grid(nvmax = 400))
+pred <- predict(leap, newx = as.matrix(testData))
+leap$levels
+MSELeapForwardProt <- MSE(pred, testRes)
+```
+
+
+```{r}
+# PLS: maybe will help us to avoid the issue of linear dependency
+
+plsProt <- train(Y ~., data = train,
+ method = "pls",
+ tuneLength = 20,
+ preProc = c("zv","center","scale"))
+
+
+predPLS <- predict(plsProt, newx = testData)
+MSEPLSProt <- MSE(predPLS, testRes)
+#plsProt <- train(train[,-ncol(train)], train[,ncol(train)], method = "pls", tuneGrid = expand.grid(nvmax = seq(400)))
+
+# linear dependencies
+comboInfo <- findLinearCombos(data)
+no.Depends <- data[, -comboInfo$remove]
+
+# leap forward
+leap <- train(no.Depends[,-ncol(no.Depends)], method = "leapForward", tuneGrid = expand.grid(nvmax = 5))
+pred <- predict(leap, newx = as.matrix(testData[, -comboInfo$remove]))
+MSELeapForwardProt <- MSE(pred, testRes)
+
+```
+
+```{r}
+
+# lasso again
+lassoNoDep <- cv.glmnet(as.matrix(no.Depends), as.matrix(res), nfolds = 10)
+lassoNoDepBest <- glmnet(as.matrix(no.Depends), as.matrix(res), lambda = lassoNoDep$lambda.min)
+predLassoNoDep <- predict(lassoNoDepBest, s = lassoNoDep$lambda.min, newx = as.matrix(testData[, -comboInfo$remove]))
+MSELassoNoDepProt <- MSE(predLassoNoDep, testRes)
+
+```
+
+
+```{r}
+# stepBIC
+steps <- train(train[,-ncol(train)], train[,ncol(train)], method = "glmStepAIC")
+empty.mod <- lm(Y ~ 1, data = subData)
+form <- formul(subData[-ncol(subData)])
+stepAic <- system.time(bic(subData))
+stepAic
+dim(as.data.frame(stepAic$coefficients))
+
+```
+
+```{r}
+# randomForest
+proteinRandomForest <- randomForest(x = data, y = res)
+
+pred <- predict(proteinRandomForest, newdata = testData)
+MSERanForProtein <- MSE(pred, testRes)
+```
+
+
+```{r}
+# Vif
+head(subData)
+lm.vif = lm(Y ~ . , data = subData)
+lm.vif$coefficients
+vif(lm.vif)
+outlierTest(lm.vif)
+```
+
+```{r}
+#-----------------CANCER
+
+load("~/SADFinal/cancer.RData")
+data.train.canc <- data.train
+data.test.canc <- data.test
+
+separated <- sep_train_test(data.train.canc)
+categorical(data.train.canc) # there are no categorical values in cancer.
+train <- separated$train
+test <- separated$test
 data <- as.matrix(train[,-ncol(train)])
 res <- as.matrix(train[,ncol(train)])
 testData <- as.matrix(test[,-ncol(test)])
 testRes <- as.matrix(test[,ncol(test)])
 
 #lasso
-lasso <- cv.glmnet(data, res, nfolds = 10)
+lasso <- cv.glmnet(data, res, nfolds = 10, alpha = 1)
 lasso_best <- glmnet(data, res, lambda = lasso$lambda.min)
-coef(lasso_best)
-
-#ridge
-ridge <- cv.glmnet(data, res, alpha = 0, nfolds = 10)
-
+subData <- lasso_non_zeroes(lasso_best, as.data.frame(train))
 pred <- predict(lasso_best, s = lasso$lambda.min, newx = testData)
-predRidge <- predict(ridge, s = ridge$lambda.min, newx = testData)
-MSE(pred, testRes)
-MSE(predRidge, testRes)
-r <- testRes
+MSELassoCancer <- MSE(pred, testRes)
+
+library(caret)
+el.net <- train(train[,-ncol(train)], train[,ncol(train)], method = "glmnet", tuneLength = 10)
+
+# ridge
+ridgeC <- cv.glmnet(data, res, nfolds = 10, alpha = 0)
+ridge.Best.C <- glmnet(data, res, lambda = ridgeC$lambda.min)
 ```
 
 ```{r}
-trDF <- as.data.frame(train)
-y <- trDF[ncol(trDF)]
-X <- trDF[-ncol(trDF)]
-yX = trDF
-cs <- coef(lasso_best)
-nonzero <- (which(cs[,1]!=0) - 1)[-1]
-r <- rownames(as.data.frame(nonzero))
-# nonz <- as.data.frame(cs[nonzero, ])
-sub <- X[, r] # subset of variables that were nonzero from lasso
-subData <- cbind(yX[,nonzero], y)
+# randomForest
+cancerRandomForest <- randomForest(x = data, y = res)
+t <- system.time(randomForest(x = data, y = res, ntree = 32))
+
+pred <- predict(cancerRandomForest, newdata = testData)
+head(pred)
+MSERanForCancer <- MSE(pred, testRes)
+MSERanForCancer
+
 ```
 
 ```{r}
-n <- dim(subData)[1]
-n
-empty.mod <- lm(Y ~ 1, data = subData)
-form <- formul(sub)
-stepAic <- stepAIC(empty.mod, form, k = log(n))
-res <- bic(subData)
-
+# Let's try random forest on predictors from lasso. Random forest works better with carefully chosen predictors.
+cancerRandomForest2 <- randomForest(x = subData[,-ncol(subData)], y = subData[,ncol(subData)])
+pred <- predict(cancerRandomForest2, newdata = testData)
+MSERanFor2Cancer <- MSE(pred, testRes)
+importance(cancerRandomForest2)
 ```
-
 
 
 ```{r}
-head(subData)
-lm.vif = lm(Y ~ . , data = subData)
-lm.vif$coefficients
-vif(lm.vif)
+
+
 ```
 
-```{r}
-#scatter.smooth(x=cars$speed, y=cars$dist, main="Dist ~ Speed")  # scatterplot
-```
 
