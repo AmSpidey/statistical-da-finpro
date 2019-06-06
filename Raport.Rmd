@@ -39,7 +39,7 @@ sep_train_test <- function (data.train) {
   smp_size <- floor(0.75 * nrow(trDF))
   
   ## set the seed to make the partition reproducible
-  set.seed(321)
+  set.seed(123)
   train_ind <- sample(seq_len(nrow(trDF)), size = smp_size)
   
   train <- trDF[train_ind, ]
@@ -92,9 +92,10 @@ testRes <- test[,ncol(test)]
 
 #lasso
 lasso <- cv.glmnet(as.matrix(data), as.matrix(res), nfolds = 10)
+lasso$lambda.min
 lasso_best <- glmnet(as.matrix(data), as.matrix(res), lambda = lasso$lambda.min)
 subData <- lasso_non_zeroes(lasso_best, as.data.frame(train))
-
+dim(subData)
 #ridge
 ridge <- cv.glmnet(as.matrix(data), as.matrix(res), alpha = 0, nfolds = 10)
 
@@ -111,8 +112,15 @@ MSERidgeProt <- MSE(predRidge, testRes)
 # leap forward
 leap <- train(data, res, method = "leapForward", tuneGrid = expand.grid(nvmax = 400))
 pred <- predict(leap, newx = as.matrix(testData))
-leap$levels
+leap$results
+
 MSELeapForwardProt <- MSE(pred, testRes)
+
+leap <- train(data, res, method = "leapForward", tuneGrid = expand.grid(nvmax = 5))
+pred <- predict(leap, newx = as.matrix(testData))
+
+MSELeapForwardProt <- MSE(pred, testRes)
+summary(leap)
 ```
 
 
@@ -153,10 +161,19 @@ MSELassoNoDepProt <- MSE(predLassoNoDep, testRes)
 
 ```{r}
 # stepBIC
-steps <- train(train[,-ncol(train)], train[,ncol(train)], method = "glmStepAIC")
+steps <- train(data,res, method = "glmStepAIC")
+
 empty.mod <- lm(Y ~ 1, data = subData)
+all.mod <- lm(Y ~ ., data = subData)
+stepaic <- stepAIC(initialModel,direction="forward",
+    scope=list(lower=initialModel,
+        upper=allModel)
+    )
+
 form <- formul(subData[-ncol(subData)])
-stepAic <- system.time(bic(subData))
+is.data.frame(subData)
+stepBic <- train(x = subData[,-ncol(subData)], y = subData[,ncol(subData)], method = "glmStepAIC", direction = "forward")
+stepAic <- bic(subData)
 stepAic
 dim(as.data.frame(stepAic$coefficients))
 
