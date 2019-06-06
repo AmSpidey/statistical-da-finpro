@@ -3,7 +3,7 @@ title: "Raport"
 output: html_notebook
 ---
 
-Analizę	zmiennych	objaśniających.	Opisz,	jakiego	są	one	typu?
+ANALIZA ZMIENNYCH OBJAŚNIAJĄCYCH
 Protein: Zmienne są typu ilościowego. VIF pokazuje że wybrane predyktory są nieistotnie skolerowane.
 Cancer: Zmienne są typu ilościowego.
 W obu zastosowałam Lasso. Predyktorów było dużo więcej niż obserwacji, więc chciałam usunąć te mniej znaczące. Oprócz tego VIF.
@@ -61,12 +61,14 @@ bic <- function (train) {
   return(stepAic)
 }
 
-lasso_non_zeroes <- function (lasso_best, yX) {
+lasso_non_zeroes <- function (lasso_best, yX, ytXt) {
   cs <- coef(lasso_best)
   nonzero <- (which(cs[,1]!=0) - 1)[-1]
   r <- rownames(as.data.frame(nonzero))
   subData <- cbind(yX[,nonzero], yX[ncol(yX)])
-  return(subData)
+  subTest <- cbind(ytXt[,nonzero], ytXt[ncol(ytXt)])
+  to_ret <- list ("subData" = subData, "subTest" = subTest)
+  return(to_ret)
 }
 
 ```
@@ -76,11 +78,27 @@ lasso_non_zeroes <- function (lasso_best, yX) {
 load("~/SADFinal/protein.RData")
 data.train.prot <- data.train
 data.test.prot <- data.test
-data.train.prot[1,]
+load("~/SADFinal/cancer.RData")
+data.train.canc <- data.train
+data.test.canc <- data.test
+
+# ANALIZA ZMIENNYCH OBJASNIAJCYCH:
+# Zmienne sa typu ilosciowego zarowno w protein jak i w cancer. Zmiennych objasniajacych jest wiecej niz obserwacji (dane wysokowymiarowe)
+# Ponizej sprawdzam czy ktoras ze zmiennych objasniajacych jest typu factor.
+categorical(data.train.prot)
+categorical(data.train.canc)
+# Sprawdzmy czy brakuje jakichs wartosci.
+any(sapply(data.train.prot, is.na))
+any(sapply(data.train.canc, is.na))
+# Tak tez moge szybko sprawdzic czy zmienne sa ilosciowe. Gdyby nie byly, byloby mniej wartosci unikalnych.
+length(unique(data.train.prot))
+length(unique(data.train.canc[,2]))
+```
+
+```{r}
 # ---------------------PROTEIN
 
 separated <- sep_train_test(data.train.prot)
-categorical(data.train.prot) # there are no categorical values in protein.
 
 train <- separated$train
 test <- separated$test
@@ -90,119 +108,50 @@ res <- train[,ncol(train)]
 testData <- test[,-ncol(test)]
 testRes <- test[,ncol(test)]
 
-#lasso
+# lasso
 lasso <- cv.glmnet(as.matrix(data), as.matrix(res), nfolds = 10)
-lasso$lambda.min
 lasso_best <- glmnet(as.matrix(data), as.matrix(res), lambda = lasso$lambda.min)
-subData <- lasso_non_zeroes(lasso_best, as.data.frame(train))
-dim(subData)
-#ridge
-ridge <- cv.glmnet(as.matrix(data), as.matrix(res), alpha = 0, nfolds = 10)
 
-pred <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(testData))
-predRidge <- predict(ridge, s = ridge$lambda.min, newx = as.matrix(testData))
+predTest <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(testData))
 predTrain <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(data))
-MSETrain <- MSE(predTrain, res)
-MSELassoProt <- MSE(pred, testRes)
-MSERidgeProt <- MSE(predRidge, testRes)
+MSELassoProt <- MSE(predTest, testRes)
+MSELassoProtTrain <- MSE(predTrain, res)
+
 ```
 
-
+# vif dla lasso (potem porównam lasso z inną metodą by pokazać, dlaczego wybrałam lasso)
 ```{r}
-# leap forward
-leap <- train(data, res, method = "leapForward", tuneGrid = expand.grid(nvmax = 400))
-pred <- predict(leap, newx = as.matrix(testData))
-leap$results
+sub <- lasso_non_zeroes(lasso_best, as.data.frame(train), as.data.frame(test))
+subData <- sub$subData
 
-MSELeapForwardProt <- MSE(pred, testRes)
-
-leap <- train(data, res, method = "leapForward", tuneGrid = expand.grid(nvmax = 5))
-pred <- predict(leap, newx = as.matrix(testData))
-
-MSELeapForwardProt <- MSE(pred, testRes)
-summary(leap)
+lm.vif = lm(Y ~ . , data = subData)
+lm.vif$coefficients
+lassoVif <- vif(lm.vif)
+hist(lassoVif)
 ```
-
-
-```{r}
-# PLS: maybe will help us to avoid the issue of linear dependency
-
-plsProt <- train(Y ~., data = train,
- method = "pls",
- tuneLength = 20,
- preProc = c("zv","center","scale"))
-
-
-predPLS <- predict(plsProt, newx = testData)
-MSEPLSProt <- MSE(predPLS, testRes)
-#plsProt <- train(train[,-ncol(train)], train[,ncol(train)], method = "pls", tuneGrid = expand.grid(nvmax = seq(400)))
-
-# linear dependencies
-comboInfo <- findLinearCombos(data)
-no.Depends <- data[, -comboInfo$remove]
-
-# leap forward
-leap <- train(no.Depends[,-ncol(no.Depends)], method = "leapForward", tuneGrid = expand.grid(nvmax = 5))
-pred <- predict(leap, newx = as.matrix(testData[, -comboInfo$remove]))
-MSELeapForwardProt <- MSE(pred, testRes)
-
-```
-
-```{r}
-
-# lasso again
-lassoNoDep <- cv.glmnet(as.matrix(no.Depends), as.matrix(res), nfolds = 10)
-lassoNoDepBest <- glmnet(as.matrix(no.Depends), as.matrix(res), lambda = lassoNoDep$lambda.min)
-predLassoNoDep <- predict(lassoNoDepBest, s = lassoNoDep$lambda.min, newx = as.matrix(testData[, -comboInfo$remove]))
-MSELassoNoDepProt <- MSE(predLassoNoDep, testRes)
-
-```
-
 
 ```{r}
 # stepBIC
-steps <- train(data,res, method = "glmStepAIC")
 
 empty.mod <- lm(Y ~ 1, data = subData)
 all.mod <- lm(Y ~ ., data = subData)
-stepaic <- stepAIC(initialModel,direction="forward",
-    scope=list(lower=initialModel,
-        upper=allModel)
+
+stepaic <- stepAIC(empty.mod, direction="forward",
+    scope=list(lower=empty.mod,
+        upper=all.mod)
     )
 
-form <- formul(subData[-ncol(subData)])
-is.data.frame(subData)
-stepBic <- train(x = subData[,-ncol(subData)], y = subData[,ncol(subData)], method = "glmStepAIC", direction = "forward")
-stepAic <- bic(subData)
-stepAic
-dim(as.data.frame(stepAic$coefficients))
+predTrain <- predict(stepaic, newdata = sub$subData)
+MSEBICProt <- MSE(predTrain, res)
+predTest <- predict(stepaic, newdata = sub$subTrain)
+MSEBICProtTest <- MSE(predTest, testRes)
+# Duzo wiekszy overfitting.
 
 ```
 
-```{r}
-# randomForest
-proteinRandomForest <- randomForest(x = data, y = res)
-
-pred <- predict(proteinRandomForest, newdata = testData)
-MSERanForProtein <- MSE(pred, testRes)
-```
-
-
-```{r}
-# Vif
-head(subData)
-lm.vif = lm(Y ~ . , data = subData)
-lm.vif$coefficients
-vif(lm.vif)
-outlierTest(lm.vif)
-```
 
 ```{r}
 #-----------------CANCER
-
-load("~/SADFinal/cancer.RData")
-data.train.canc <- data.train
-data.test.canc <- data.test
 
 separated <- sep_train_test(data.train.canc)
 categorical(data.train.canc) # there are no categorical values in cancer.
