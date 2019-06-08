@@ -161,13 +161,13 @@ MSEBICProtTest <- MSE(predTest, testRes)
 k <- 10
 cv_data <- subData
 div <- cut(1:nrow(cv_data), 10, labels = FALSE)
-div <- sample(podzial, length(podzial))
+div <- sample(div, length(div))
 test.errs <- numeric(10)
 train.errs <- numeric(10)
 
 for (i in 1:k) {
-  train_indx <- which(podzial != i)
-  test_indx <- which(podzial == i)
+  train_indx <- which(div != i)
+  test_indx <- which(div == i)
   
   empty.mod <- lm(Y ~ 1, data = cv_data)
   all.mod <- lm(Y ~ ., data = cv_data)
