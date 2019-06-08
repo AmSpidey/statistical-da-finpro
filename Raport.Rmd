@@ -163,8 +163,9 @@ MSEBICProtTest <- MSE(predTest, testRes)
 
 ```
 
-```{r}
 
+```{r}
+# stepBIC cv
 # I had problems using caret, so I implemented cross-validation myself.
 
 k <- 10
@@ -193,7 +194,15 @@ for (i in 1:k) {
   train.errs[i] <- train.err
 }
 
-cv.err <- mean(test.errs)
+bic.prot.cv.err <- mean(test.errs)
+
+```
+
+```{r}
+# lasso cv
+
+lassoCV <- cv.glmnet(as.matrix(data.train.prot[, -ncol(data.train.prot)]), as.matrix(data.train.prot[, ncol(data.train.prot)]), nfolds = 10)
+lasso.prot.cv.err <- lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min]
 
 ```
 
