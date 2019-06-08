@@ -40,8 +40,12 @@ sep_train_test <- function (data.train) {
   set.seed(123)
   train_ind <- sample(seq_len(nrow(trDF)), size = smp_size)
   
-  train <- trDF[train_ind, ]
-  test <- trDF[-train_ind, ]
+  return(train_ind)
+  }
+
+sep_by_indx <- function (indxs, data) {
+  train <- data[indxs, ]
+  test <- data[-indxs, ]
   to_ret <- list("train" = train, "test" = test)
   return(to_ret)
 }
@@ -59,14 +63,11 @@ bic <- function (train) {
   return(stepAic)
 }
 
-lasso_non_zeroes <- function (lasso_best, yX, ytXt) {
+lasso_non_zeroes <- function (lasso_best, yX) {
   cs <- coef(lasso_best)
   nonzero <- (which(cs[,1]!=0) - 1)[-1]
   r <- rownames(as.data.frame(nonzero))
-  subTrain <- cbind(yX[,nonzero], yX[ncol(yX)])
-  subTest <- cbind(ytXt[,nonzero], ytXt[ncol(ytXt)])
-  to_ret <- list ("subTrain" = subTrain, "subTest" = subTest)
-  return(to_ret)
+  return(cbind(yX[,nonzero], yX[ncol(yX)]))
 }
 
 ```
@@ -79,6 +80,8 @@ data.test.prot <- data.test
 load("~/SADFinal/cancer.RData")
 data.train.canc <- data.train
 data.test.canc <- data.test
+
+set.seed(123)
 
 # ANALIZA ZMIENNYCH OBJASNIAJCYCH:
 # Zmienne sa typu ilosciowego zarowno w protein jak i w cancer. Zmiennych objasniajacych jest wiecej niz obserwacji (dane wysokowymiarowe)
@@ -96,7 +99,8 @@ length(unique(data.train.canc[,2]))
 ```{r}
 # ---------------------PROTEIN
 
-separated <- sep_train_test(data.train.prot)
+train_indxs <- sep_train_test(data.train.prot)
+separated <- sep_by_indx(train_indxs, data.train.prot)
 
 train <- separated$train
 test <- separated$test
@@ -119,7 +123,9 @@ MSELassoProtTrain <- MSE(predTrain, res)
 
 # vif dla lasso (potem porównam lasso z inną metodą by pokazać, dlaczego wybrałam lasso)
 ```{r}
-sub <- lasso_non_zeroes(lasso_best, as.data.frame(train), as.data.frame(test))
+subData <- lasso_non_zeroes(lasso_best, as.data.frame(data.train.prot))
+sub <- sep_by_indx(train_indxs, subData)
+                        
 subTrain <- sub$subTrain
 subTest <- sub$subTest
 
