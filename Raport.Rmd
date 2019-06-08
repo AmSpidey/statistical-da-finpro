@@ -126,8 +126,8 @@ MSELassoProtTrain <- MSE(predTrain, res)
 subData <- lasso_non_zeroes(lasso_best, as.data.frame(data.train.prot))
 sub <- sep_by_indx(train_indxs, subData)
                         
-subTrain <- sub$subTrain
-subTest <- sub$subTest
+subTrain <- sub$train
+subTest <- sub$test
 
 lm.vif = lm(Y ~ . , data = subTrain)
 lm.vif$coefficients
@@ -145,6 +145,7 @@ stepaic <- stepAIC(empty.mod, direction="forward",
     scope=list(lower=empty.mod,
         upper=all.mod)
     )
+stepaic$residuals
 
 predTrain <- predict(stepaic, newdata = sub$subTrain)
 MSEBICProt <- MSE(predTrain, res)
@@ -154,6 +155,34 @@ MSEBICProtTest <- MSE(predTest, testRes)
 
 # Duzo wiekszy overfitting.
 
+```
+
+```{r}
+k <- 10
+cv_data <- subData
+div <- cut(1:nrow(cv_data), 10, labels = FALSE)
+div <- sample(podzial, length(podzial))
+test.errs <- numeric(10)
+train.errs <- numeric(10)
+
+for (i in 1:k) {
+  train_indx <- which(podzial != i)
+  test_indx <- which(podzial == i)
+  
+  empty.mod <- lm(Y ~ 1, data = cv_data)
+  all.mod <- lm(Y ~ ., data = cv_data)
+  model <- stepAIC(empty.mod, direction="forward",
+      scope=list(lower=empty.mod,
+          upper=all.mod)
+      )
+  
+  train.err <- mean(model$residuals**2)
+  
+  pred <- predict(model, newdata=cv_data[test_indx, ])
+  test.err <- mean((pred - cv_data[test_indx, "V2"])**2)
+  test.errs[i] <- test.err
+  train.errs[i] <- train.err
+}
 ```
 
 
