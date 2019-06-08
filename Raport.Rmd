@@ -70,6 +70,12 @@ lasso_non_zeroes <- function (lasso_best, yX) {
   return(cbind(yX[,nonzero], yX[ncol(yX)]))
 }
 
+quiet <- function(x) { 
+  sink(tempfile()) 
+  on.exit(sink()) 
+  invisible(force(x)) 
+}
+
 ```
 
 ```{r}
@@ -141,10 +147,10 @@ hist(lassoVif)
 empty.mod <- lm(Y ~ 1, data = subTrain)
 all.mod <- lm(Y ~ ., data = subTrain)
 
-stepaic <- stepAIC(empty.mod, direction="forward",
+stepaic <- quiet(stepAIC(empty.mod, direction="forward",
     scope=list(lower=empty.mod,
         upper=all.mod)
-    )
+    ))
 stepaic$residuals
 
 predTrain <- predict(stepaic, newdata = sub$subTrain)
@@ -158,6 +164,9 @@ MSEBICProtTest <- MSE(predTest, testRes)
 ```
 
 ```{r}
+
+# I had problems using caret, so I implemented cross-validation myself.
+
 k <- 10
 cv_data <- subData
 div <- cut(1:nrow(cv_data), 10, labels = FALSE)
@@ -171,18 +180,21 @@ for (i in 1:k) {
   
   empty.mod <- lm(Y ~ 1, data = cv_data)
   all.mod <- lm(Y ~ ., data = cv_data)
-  model <- stepAIC(empty.mod, direction="forward",
+  model <- quiet(stepAIC(empty.mod, direction="forward",
       scope=list(lower=empty.mod,
           upper=all.mod)
-      )
+      ))
   
   train.err <- mean(model$residuals**2)
   
   pred <- predict(model, newdata=cv_data[test_indx, ])
-  test.err <- mean((pred - cv_data[test_indx, "V2"])**2)
+  test.err <- mean((pred - cv_data[test_indx, "Y"])**2)
   test.errs[i] <- test.err
   train.errs[i] <- train.err
 }
+
+cv.err <- mean(test.errs)
+
 ```
 
 
