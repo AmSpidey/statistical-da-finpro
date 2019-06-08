@@ -28,8 +28,6 @@ formul <- function (X) {
 }
 ```
 
-
-
 ```{r}
 sep_train_test <- function (data.train) {
   # separate into train and test
@@ -65,9 +63,9 @@ lasso_non_zeroes <- function (lasso_best, yX, ytXt) {
   cs <- coef(lasso_best)
   nonzero <- (which(cs[,1]!=0) - 1)[-1]
   r <- rownames(as.data.frame(nonzero))
-  subData <- cbind(yX[,nonzero], yX[ncol(yX)])
+  subTrain <- cbind(yX[,nonzero], yX[ncol(yX)])
   subTest <- cbind(ytXt[,nonzero], ytXt[ncol(ytXt)])
-  to_ret <- list ("subData" = subData, "subTest" = subTest)
+  to_ret <- list ("subTrain" = subTrain, "subTest" = subTest)
   return(to_ret)
 }
 
@@ -122,9 +120,10 @@ MSELassoProtTrain <- MSE(predTrain, res)
 # vif dla lasso (potem porównam lasso z inną metodą by pokazać, dlaczego wybrałam lasso)
 ```{r}
 sub <- lasso_non_zeroes(lasso_best, as.data.frame(train), as.data.frame(test))
-subData <- sub$subData
+subTrain <- sub$subTrain
+subTest <- sub$subTest
 
-lm.vif = lm(Y ~ . , data = subData)
+lm.vif = lm(Y ~ . , data = subTrain)
 lm.vif$coefficients
 lassoVif <- vif(lm.vif)
 hist(lassoVif)
@@ -133,18 +132,20 @@ hist(lassoVif)
 ```{r}
 # stepBIC
 
-empty.mod <- lm(Y ~ 1, data = subData)
-all.mod <- lm(Y ~ ., data = subData)
+empty.mod <- lm(Y ~ 1, data = subTrain)
+all.mod <- lm(Y ~ ., data = subTrain)
 
 stepaic <- stepAIC(empty.mod, direction="forward",
     scope=list(lower=empty.mod,
         upper=all.mod)
     )
 
-predTrain <- predict(stepaic, newdata = sub$subData)
+predTrain <- predict(stepaic, newdata = sub$subTrain)
 MSEBICProt <- MSE(predTrain, res)
-predTest <- predict(stepaic, newdata = sub$subTrain)
+sub$subTest
+predTest <- predict(stepaic, newdata = sub$subTest)
 MSEBICProtTest <- MSE(predTest, testRes)
+
 # Duzo wiekszy overfitting.
 
 ```
@@ -154,47 +155,74 @@ MSEBICProtTest <- MSE(predTest, testRes)
 #-----------------CANCER
 
 separated <- sep_train_test(data.train.canc)
-categorical(data.train.canc) # there are no categorical values in cancer.
+
 train <- separated$train
 test <- separated$test
-data <- as.matrix(train[,-ncol(train)])
-res <- as.matrix(train[,ncol(train)])
-testData <- as.matrix(test[,-ncol(test)])
-testRes <- as.matrix(test[,ncol(test)])
+
+data <- train[,-ncol(train)]
+res <- train[,ncol(train)]
+testData <- test[,-ncol(test)]
+testRes <- test[,ncol(test)]
 
 #lasso
-lasso <- cv.glmnet(data, res, nfolds = 10, alpha = 1)
-lasso_best <- glmnet(data, res, lambda = lasso$lambda.min)
-subData <- lasso_non_zeroes(lasso_best, as.data.frame(train))
-pred <- predict(lasso_best, s = lasso$lambda.min, newx = testData)
-MSELassoCancer <- MSE(pred, testRes)
+lasso <- cv.glmnet(as.matrix(data), as.matrix(res), nfolds = 10, alpha = 1)
+lasso_best <- glmnet(as.matrix(data), as.matrix(res), lambda = lasso$lambda.min, alpha = 1)
 
-library(caret)
-el.net <- train(train[,-ncol(train)], train[,ncol(train)], method = "glmnet", tuneLength = 10)
+predTest <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(testData))
+predTrain <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(data))
+MSELassoCanc <- MSE(predTest, testRes)
+MSELassoCancTrain <- MSE(predTrain, res)
 
-# ridge
-ridgeC <- cv.glmnet(data, res, nfolds = 10, alpha = 0)
-ridge.Best.C <- glmnet(data, res, lambda = ridgeC$lambda.min)
 ```
+
+```{r}
+train.control <- trainControl(method = "cv", number = 10)
+# Train the model
+glmnet_grid <- expand.grid(alpha = 1,
+                           lambda = lasso$lambda.min)
+model <- train(Y ~., data = as.matrix(train), method = "glmnet",
+               trControl = train.control, tuneGrid = glmnet_grid)
+
+```
+
+
+```{r}
+#ridge
+ridge <- cv.glmnet(as.matrix(data), as.matrix(res), nfolds = 10, alpha = 0)
+ridge_best <- glmnet(as.matrix(data), as.matrix(res), lambda = ridge$lambda.min, alpha = 0)
+
+predTest <- predict(ridge_best, s = ridge$lambda.min, newx = as.matrix(testData))
+predTrain <- predict(ridge_best, s = ridge$lambda.min, newx = as.matrix(data))
+MSEridgeCanc <- MSE(predTest, testRes)
+MSEridgeCancTrain <- MSE(predTrain, res)
+min(ridge$cvm)
+min(lasso$cvm)
+
+```
+
 
 ```{r}
 # randomForest
 cancerRandomForest <- randomForest(x = data, y = res)
-t <- system.time(randomForest(x = data, y = res, ntree = 32))
 
 pred <- predict(cancerRandomForest, newdata = testData)
-head(pred)
+predTrain <- predict(cancerRandomForest, newdata = data)
 MSERanForCancer <- MSE(pred, testRes)
-MSERanForCancer
+MSERanForCancerTrain <- MSE(predTrain, res)
 
 ```
 
+
 ```{r}
-# Let's try random forest on predictors from lasso. Random forest works better with carefully chosen predictors.
-cancerRandomForest2 <- randomForest(x = subData[,-ncol(subData)], y = subData[,ncol(subData)])
-pred <- predict(cancerRandomForest2, newdata = testData)
+# Let's try random forest on predictors from lasso. Maybe Random Forest works better with carefully chosen predictors.
+sub <- lasso_non_zeroes(lasso_best, data, testData)
+subTrain <- sub$subTrain
+
+cancerRandomForest2 <- randomForest(x = subTrain[,-ncol(subTrain)], y = subTrain[,ncol(subTrain)])
+pred <- predict(cancerRandomForest2, newdata = sub$subTest)
+predTrain <- predict(cancerRandomForest2, newdata = sub$subTrain)
 MSERanFor2Cancer <- MSE(pred, testRes)
-importance(cancerRandomForest2)
+MSERanForCancer2Train <- MSE(predTrain, res)
 ```
 
 
