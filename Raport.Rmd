@@ -22,7 +22,7 @@ library(pls)
 
 ```{r}
 formul <- function (X) {
-  predictors <- predyktory <- paste(names(X), collapse = "+")
+  predictors <- paste(names(X), collapse = "+")
   form <- as.formula(paste("Y ~", predictors))
   return(form)
 }
@@ -231,16 +231,6 @@ MSELassoCancTrain <- MSE(predTrain, res)
 
 ```
 
-```{r}
-train.control <- trainControl(method = "cv", number = 10)
-# Train the model
-glmnet_grid <- expand.grid(alpha = 1,
-                           lambda = lasso$lambda.min)
-model <- train(Y ~., data = as.matrix(train), method = "glmnet",
-               trControl = train.control, tuneGrid = glmnet_grid)
-
-```
-
 
 ```{r}
 #ridge
@@ -316,5 +306,16 @@ cancerRandomForest3 <- randomForest(x = data.train.canc[,-ncol(data.train.canc)]
 pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
 
 ```
+
+```{r}
+# Most important 100 predictors chosen by leapForwards.
+cancerLm <- lm (Y ~., data = data.train.canc)
+stCancLm <- lm.beta(cancerLm)
+
+
+
+?leaps.default
+```
+
 
 
