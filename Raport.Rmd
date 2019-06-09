@@ -142,7 +142,7 @@ hist(lassoVif)
 ```
 
 ```{r}
-# stepBIC
+# stepAIC
 
 empty.mod <- lm(Y ~ 1, data = subTrain)
 all.mod <- lm(Y ~ ., data = subTrain)
@@ -165,7 +165,7 @@ MSEBICProtTest <- MSE(predTest, testRes)
 
 
 ```{r}
-# stepBIC cv
+# stepAIC cv
 # I had problems using caret, so I implemented cross-validation myself.
 
 k <- 10
@@ -297,7 +297,6 @@ for (i in 1:k) {
   test_indx <- which(div == i)
   
   model <- randomForest(x = cv_data[train_indx, -ncol(cv_data)], y = cv_data[train_indx, ncol(cv_data)])
-  
   #train.err <- mean(model$residuals**2)
   
   pred <- predict(model, newdata=cv_data[test_indx, ])
@@ -309,4 +308,13 @@ for (i in 1:k) {
 rf.canc.cv.err <- mean(test.errs)
 
 ```
+
+```{r}
+# random forest on whole training set to take out the mse
+
+cancerRandomForest3 <- randomForest(x = data.train.canc[,-ncol(data.train.canc)], y = data.train.canc[,ncol(data.train.canc)])
+pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
+
+```
+
 
