@@ -296,7 +296,7 @@ for (i in 1:k) {
   train_indx <- which(div != i)
   test_indx <- which(div == i)
   
-  model <- randomForest(x = cv_data[, -ncol(cv_data)], y = cv_data[, ncol(cv_data)])
+  model <- randomForest(x = cv_data[train_indx, -ncol(cv_data)], y = cv_data[train_indx, ncol(cv_data)])
   
   #train.err <- mean(model$residuals**2)
   
