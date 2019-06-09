@@ -206,6 +206,13 @@ lasso.prot.cv.err <- lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min]
 
 ```
 
+```{r}
+# choosing most important 5 predictors with leapForward.
+reg <- regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward")
+sum <- summary(reg)
+coef(reg,5)
+```
+
 
 ```{r}
 #-----------------CANCER
