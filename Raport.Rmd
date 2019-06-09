@@ -283,8 +283,29 @@ MSERanForCancer2Train <- MSE(predTrain, res)
 
 
 ```{r}
+# randomForest cv
+k <- 10
+cv_data <- data.train.canc
+div <- cut(1:nrow(cv_data), 10, labels = FALSE)
+div <- sample(div, length(div))
+test.errs <- numeric(10)
+train.errs <- numeric(10)
 
+for (i in 1:k) {
+  train_indx <- which(div != i)
+  test_indx <- which(div == i)
+  
+  model <- randomForest(data = cv_data[, -ncol(cv_data)], res = cv_data[, ncol(cv_data)])
+  
+  #train.err <- mean(model$residuals**2)
+  
+  pred <- predict(model, newdata=cv_data[test_indx, ])
+  test.err <- mean((pred - cv_data[test_indx, "Y"])**2)
+  test.errs[i] <- test.err
+  #train.errs[i] <- train.err
+}
+
+rf.canc.cv.err <- mean(test.errs)
 
 ```
-
 
