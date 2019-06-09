@@ -308,7 +308,8 @@ pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
 ```
 
 ```{r}
-# Most important 100 predictors chosen by leapForwards.
+# Most important 100 predictors chosen.
+# First I removed linear dependencies so the model is easier to process.
 cancerLm <- lm (Y ~., data = data.train.canc)
 stCancLm <- lm.beta(cancerLm)
 
