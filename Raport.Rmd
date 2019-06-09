@@ -179,8 +179,8 @@ for (i in 1:k) {
   train_indx <- which(div != i)
   test_indx <- which(div == i)
   
-  empty.mod <- lm(Y ~ 1, data = cv_data)
-  all.mod <- lm(Y ~ ., data = cv_data)
+  empty.mod <- lm(Y ~ 1, data = cv_data, subset = train_indx)
+  all.mod <- lm(Y ~ ., data = cv_data, subset = train_indx)
   model <- quiet(stepAIC(empty.mod, direction="forward",
       scope=list(lower=empty.mod,
           upper=all.mod)
@@ -271,7 +271,7 @@ MSERanForCancerTrain <- MSE(predTrain, res)
 
 ```{r}
 # Let's try random forest on predictors from lasso. Maybe Random Forest works better with carefully chosen predictors.
-sub <- lasso_non_zeroes(lasso_best, data, testData)
+sub <- lasso_non_zeroes(lasso_best, data)
 subTrain <- sub$subTrain
 
 cancerRandomForest2 <- randomForest(x = subTrain[,-ncol(subTrain)], y = subTrain[,ncol(subTrain)])
@@ -292,10 +292,11 @@ test.errs <- numeric(10)
 train.errs <- numeric(10)
 
 for (i in 1:k) {
+  print(i)
   train_indx <- which(div != i)
   test_indx <- which(div == i)
   
-  model <- randomForest(data = cv_data[, -ncol(cv_data)], res = cv_data[, ncol(cv_data)])
+  model <- randomForest(x = cv_data[, -ncol(cv_data)], y = cv_data[, ncol(cv_data)])
   
   #train.err <- mean(model$residuals**2)
   
