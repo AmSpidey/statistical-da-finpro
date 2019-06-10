@@ -211,7 +211,7 @@ bic.prot.cv.err <- mean(test.errs)
 # lasso cv
 
 lassoCV <- cv.glmnet(as.matrix(data.train.prot[, -ncol(data.train.prot)]), as.matrix(data.train.prot[, ncol(data.train.prot)]), nfolds = 10)
-lasso.prot.cv.err <- lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min]
+lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 
 ```
 
@@ -230,12 +230,23 @@ load("nowakowska.RData")
 
 trCtrl = trainControl(method = "cv", number = 10)
 reg100 <- train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
-# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5.
-
+# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5
+coef(reg100$finalModel, 5)
 # Let's try out hold out method first.
 
+predProt <- paste(predictors.protein, collapse = "+")
+form <- as.formula(paste("Y ~", predProt))
 
+lm5Prot <- lm(form, as.data.frame(train))
+predTrain <- predict(lm5Prot, as.data.frame(train))
+MSELM5ProteinTrain <- MSE(predTrain, res)
+predTest <- predict(lm5Prot, as.data.frame(test))
+MSELM5ProteinTest <- MSE(predTest, testRes)
 
+library(lmvar)
+# Cross-validation
+lm.prot.cv <- cv.lm(lm(form, as.data.frame(data.train.prot), y = TRUE, x = TRUE))
+lm.prot.cv.err <- lm.prot.cv$MSE$mean
 ```
 
 
