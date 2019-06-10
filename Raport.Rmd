@@ -272,8 +272,8 @@ pred.protein <- predict(reg100, data.test.prot)
 fullCancPred <- data.train.canc[,-ncol(data.train.canc)]
 fullCancRes <- data.train.canc[,ncol(data.train.canc)]
 
-train_indxs <- sep_train_test(data.train.prot)
-separated <- sep_by_indx(train_indxs, data.train.prot)
+train_indxs <- sep_train_test(data.train.canc)
+separated <- sep_by_indx(train_indxs, data.train.canc)
 
 train <- separated$train
 test <- separated$test
@@ -289,7 +289,7 @@ lasso_best <- glmnet(as.matrix(data), as.matrix(res), lambda = lasso$lambda.min,
 
 predTest <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(testData))
 predTrain <- predict(lasso_best, s = lasso$lambda.min, newx = as.matrix(data))
-MSELassoCanc <- MSE(predTest, testRes)
+MSELassoCancTest <- MSE(predTest, testRes)
 MSELassoCancTrain <- MSE(predTrain, res)
 
 ```
@@ -348,8 +348,8 @@ pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
 
 ```{r}
 # Most important 100 predictors chosen.
-# First I removed linear dependencies so the model is easier to process.
-comboInfo <- findLinearCombos(data.train.canc[-ncol(data.train.canc)])
+
+comboInfo <- findLinearCombos(fullCancPred)
 indCanc <- data.train.canc[, -comboInfo$remove]
 
 cancerLm <- lm (Y ~., data = indCanc)
