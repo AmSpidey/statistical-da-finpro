@@ -76,6 +76,14 @@ quiet <- function(x) {
   invisible(force(x)) 
 }
 
+predict.regsubsets =function (object ,newdata ,id ,...){
+        form=as.formula(object$call [[2]])
+        mat=model.matrix(form,newdata)
+        coefi=coef(object ,id=id)
+        xvars=names(coefi)
+        mat[,xvars]%*%coefi
+}
+
 ```
 
 ```{r}
@@ -214,6 +222,18 @@ predictors.protein <- names(coef(reg,5))[-1]
 save(predictors.protein, file = "nowakowska.RData")
 load("nowakowska.RData")
 ```
+
+```{r}
+chuj <- train(x = data, y= res, method = "leapForward", tuneGrid = expand.grid(nvmax = 5))
+
+ciul <- predict(chuj, testData)
+MSE(ciul, testRes)
+kupa <- predict(chuj, data)
+MSE(kupa, res)
+
+
+```
+
 
 
 ```{r}
