@@ -106,6 +106,9 @@ length(unique(data.train.canc[,2]))
 ```{r}
 # ---------------------PROTEIN
 
+fullProtPred <- data.train.prot[,-ncol(data.train.prot)]
+fullProtRes <- data.train.prot[,ncol(data.train.prot)]
+
 train_indxs <- sep_train_test(data.train.prot)
 separated <- sep_by_indx(train_indxs, data.train.prot)
 
@@ -186,14 +189,15 @@ for (i in 1:k) {
   train.errs[i] <- train.err
 }
 
-bic.prot.cv.err <- mean(test.errs)
+aic.prot.cv.err <- mean(test.errs)
+cv.tr <- mean(train.errs)
 
 ```
 
 ```{r}
 # lasso cv
 
-lassoCV <- cv.glmnet(as.matrix(data.train.prot[, -ncol(data.train.prot)]), as.matrix(data.train.prot[, ncol(data.train.prot)]), nfolds = 10)
+lassoCV <- cv.glmnet(as.matrix(fullProtPred), as.matrix(fullProtRes), nfolds = 10)
 lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 
 ```
@@ -201,7 +205,7 @@ lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 
 ```{r}
 # choosing most important 5 predictors with leapForward.
-reg <- regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward")
+reg <- quiet(regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward"))
 sum <- summary(reg)
 sum$rsq
 predictors.protein <- names(coef(reg,5))[-1]
@@ -215,9 +219,10 @@ Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
 # Trying to choose more predictors to see how it works out for us.
 
 trCtrl = trainControl(method = "cv", number = 10)
-reg100 <- train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
+reg100 <- quiet(train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl))
 # seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5
-coef(reg100$finalModel, 5)
+
+
 # Let's try out hold out method first.
 
 predTrain <- predict(reg100, as.data.frame(train))
@@ -225,6 +230,8 @@ MSELM5ProteinTrain <- MSE(predTrain, res)
 predTest <- predict(reg100, as.data.frame(test))
 MSELM5ProteinTest <- MSE(predTest, testRes)
 
+reg100final <- train(x = fullProtPred, y = fullProtRes, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
+reg100cv <- ((reg100$results)[5, "RMSE"])^2
 ```
 
 ```{r}
@@ -235,14 +242,37 @@ lm5Prot <- lm(form, as.data.frame(train))
 
 # VIF HISTOGRAM FOR PROTEIN
 
-hist(vif(lm5Prot))
+histProt <- hist(vif(lm5Prot))
 
 ```
 
+Let's create a table with crossvalidation results of each method.
+
+```{r}
+m <- 3
+protCVs <- data.frame(matrix(ncol = m, nrow = 1))
+x <- c("lasso", "stepAIC after lasso feat. sel.", "Leap forward")
+colnames(protCVs) <- x
+protCVs[1] <- lasso.prot.cv.err
+protCVs[2] <- aic.prot.cv.err
+protCVs[3] <- reg100cv
+protCVs
+```
+I am choosing leapForward, even though stepAIC has much better results. Why? Because stepAIC shows overfitting and leap forward has much less overfitting (comparing MSE on train and test).
+
+```{r}
+pred.protein <- predict(reg100, data.test.prot)
+```
+
+
+
 ```{r}
 #-----------------CANCER
+fullCancPred <- data.train.canc[,-ncol(data.train.canc)]
+fullCancRes <- data.train.canc[,ncol(data.train.canc)]
 
-separated <- sep_train_test(data.train.canc)
+train_indxs <- sep_train_test(data.train.prot)
+separated <- sep_by_indx(train_indxs, data.train.prot)
 
 train <- separated$train
 test <- separated$test
@@ -263,6 +293,15 @@ MSELassoCancTrain <- MSE(predTrain, res)
 
 ```
 
+```{r}
+# lasso cv
+
+lassoCV <- cv.glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), nfolds = 10, alpha = 1)
+lasso.canc.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
+
+```
+
+
 
 ```{r}
 #ridge
@@ -278,6 +317,13 @@ min(lasso$cvm)
 
 ```
 
+```{r}
+#ridge cv
+
+ridgeCV <- cv.glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), nfolds = 10, alpha = 0)
+ridge.canc.cv.err <- (ridgeCV$cvm[ridgeCV$lambda == ridgeCV$lambda.min])
+
+```
 
 ```{r}
 # randomForest
