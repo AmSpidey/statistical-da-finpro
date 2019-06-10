@@ -10,6 +10,13 @@ W obu zastosowałam Lasso. Predyktorów było dużo więcej niż obserwacji, wi�
 Często stosuję tzw. holdout method. Powód jest taki że nieco łatwiej dostrzec, czy mamy overfitting czy underfitting. Zachowałam to w tym skrypcie.
 
 ```{r}
+# Here I will load the appropiate vectors and histograms. The script will later recompute them.
+load("for_raport.RData")
+load("nowakowska.RData")
+```
+
+
+```{r}
 library(glmnet)
 library(carData)
 library(car)
@@ -150,8 +157,6 @@ reg <- quiet(regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.
 sum <- summary(reg)
 sum$rsq
 predictors.protein <- names(coef(reg,5))[-1]
-save(predictors.protein, file = "nowakowska.RData")
-load("nowakowska.RData")
 ```
 
 Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
@@ -240,11 +245,11 @@ MSELassoCancTrain <- MSE(predTrain, res)
 # lasso cv
 
 lassoCV <- cv.glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), nfolds = 10, alpha = 1)
-lasso_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = lassoCV$lambda.min)
+lasso_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = lassoCV$lambda.min, alpha = 1)
 
 lasso.canc.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 
-predTrain <- predict(lasso_best, fullCancPred)
+predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullCancPred))
 lasso.canc.train.err <- MSE(predTrain, fullCancRes)
 
 ```
@@ -269,10 +274,11 @@ min(lasso$cvm)
 #ridge cv
 
 ridgeCV <- cv.glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), nfolds = 10, alpha = 0)
-ridge_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = ridgeCV$lambda.min)
+ridge_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = ridgeCV$lambda.min, alpha = 0)
 
 ridge.canc.cv.err <- (ridgeCV$cvm[ridgeCV$lambda == ridgeCV$lambda.min])
-predTrain <- predict(ridge_best, fullCancPred)
+
+predTrain <- predict(ridge_best, s = ridgeCV$lamba.min, newx = as.matrix(fullCancPred))
 ridge.canc.train.err <- MSE(predTrain, fullCancRes)
 
 ```
@@ -334,6 +340,19 @@ cancCVs[1] <- lasso.canc.cv.err
 cancCVs[2] <- ridge.canc.cv.err
 cancCVs[3] <- pseu.rf.canc.cv.err
 cancCVs
+```
+
+Finally I decide to use lasso because it seems to be having smaller difference between train and test error relatively to ridge.
+
+```{r}
+pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
+```
+
+```{r}
+# Saving the histograms and predictors to separate files.
+save(predictors.protein, pred.protein, pred.cancer, file = "nowakowska.RData")
+save(histCanc, histProt, file = "for_raport.RData")
+
 ```
 
 
