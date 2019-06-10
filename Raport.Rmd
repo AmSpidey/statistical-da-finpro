@@ -348,15 +348,13 @@ pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
 
 ```{r}
 # Most important 100 predictors chosen.
-
-comboInfo <- findLinearCombos(fullCancPred)
-indCanc <- data.train.canc[, -comboInfo$remove]
-
-cancerLm <- lm (Y ~., data = indCanc)
-library(lm.beta)
-stCancLm <- lm.beta(cancerLm)
-coefs <- coef(stCancLm)
-tail(sort((coefs)),100)
+canc100_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), alpha = 1)
+canc100_best$df
+canc100_best$lambda[39]
+canc100_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = 0.014, alpha = 1)
+canc100_best$df
+subData <- lasso_non_zeroes(canc100_best, as.data.frame(data.train.canc))
+predictors.cancer <- colnames(subData[-101])
 
 ```
 
