@@ -136,22 +136,13 @@ MSELassoProtTrain <- MSE(predTrain, res)
 
 ```
 
-# vif dla lasso (potem porównam lasso z inną metodą by pokazać, dlaczego wybrałam lasso)
 ```{r}
+# stepAIC done on nonzero parameters from lasso
 subData <- lasso_non_zeroes(lasso_best, as.data.frame(data.train.prot))
 sub <- sep_by_indx(train_indxs, subData)
                         
 subTrain <- sub$train
 subTest <- sub$test
-
-lm.vif = lm(Y ~ . , data = subTrain)
-lm.vif$coefficients
-lassoVif <- vif(lm.vif)
-hist(lassoVif)
-```
-
-```{r}
-# stepAIC
 
 empty.mod <- lm(Y ~ 1, data = subTrain)
 all.mod <- lm(Y ~ ., data = subTrain)
@@ -215,6 +206,7 @@ lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 
 ```
 
+
 ```{r}
 # choosing most important 5 predictors with leapForward.
 reg <- regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward")
@@ -237,19 +229,20 @@ coef(reg100$finalModel, 5)
 predProt <- paste(predictors.protein, collapse = "+")
 form <- as.formula(paste("Y ~", predProt))
 
-lm5Prot <- lm(form, as.data.frame(train))
-predTrain <- predict(lm5Prot, as.data.frame(train))
+predTrain <- predict(reg100, as.data.frame(train))
 MSELM5ProteinTrain <- MSE(predTrain, res)
-predTest <- predict(lm5Prot, as.data.frame(test))
+predTest <- predict(reg100, as.data.frame(test))
 MSELM5ProteinTest <- MSE(predTest, testRes)
 
-library(lmvar)
-# Cross-validation
-lm.prot.cv <- cv.lm(lm(form, as.data.frame(data.train.prot), y = TRUE, x = TRUE))
-lm.prot.cv.err <- lm.prot.cv$MSE$mean
+lm5Prot <- lm(form, as.data.frame(train))
 ```
 
+```{r}
+# In the end, I decide to go with the 5 predictors. From MSE we can see that lasso tends to underfit and so does stepAIC. Let's see the VIF histogram!
 
+
+
+```
 
 ```{r}
 #-----------------CANCER
