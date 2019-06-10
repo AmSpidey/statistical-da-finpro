@@ -77,14 +77,6 @@ quiet <- function(x) {
   invisible(force(x)) 
 }
 
-predict.regsubsets =function (object ,newdata ,id ,...){
-        form=as.formula(object$call [[2]])
-        mat=model.matrix(form,newdata)
-        coefi=coef(object ,id=id)
-        xvars=names(coefi)
-        mat[,xvars]%*%coefi
-}
-
 ```
 
 ```{r}
@@ -217,6 +209,8 @@ save(predictors.protein, file = "nowakowska.RData")
 load("nowakowska.RData")
 ```
 
+Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
+
 ```{r}
 # Trying to choose more predictors to see how it works out for us.
 
@@ -239,8 +233,9 @@ predProt <- paste(predictors.protein, collapse = "+")
 form <- as.formula(paste("Y ~", predProt))
 lm5Prot <- lm(form, as.data.frame(train))
 
-hist(vif(lm5Prot))
+# VIF HISTOGRAM FOR PROTEIN
 
+hist(vif(lm5Prot))
 
 ```
 
