@@ -153,10 +153,10 @@ stepaic <- quiet(stepAIC(empty.mod, direction="forward",
     ))
 stepaic$residuals
 
-predTrain <- predict(stepaic, newdata = sub$subTrain)
+predTrain <- predict(stepaic, newdata = sub$train)
 MSEBICProt <- MSE(predTrain, res)
 sub$subTest
-predTest <- predict(stepaic, newdata = sub$subTest)
+predTest <- predict(stepaic, newdata = sub$test)
 MSEBICProtTest <- MSE(predTest, testRes)
 
 # Duzo wiekszy overfitting.
@@ -212,6 +212,7 @@ reg <- regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.
 sum <- summary(reg)
 predictors.protein <- names(coef(reg,5))[-1]
 save(predictors.protein, file = "nowakowska.RData")
+load("nowakowska.RData")
 ```
 
 
