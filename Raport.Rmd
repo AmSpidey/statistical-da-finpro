@@ -198,7 +198,11 @@ cv.tr <- mean(train.errs)
 # lasso cv
 
 lassoCV <- cv.glmnet(as.matrix(fullProtPred), as.matrix(fullProtRes), nfolds = 10)
+lasso_best <- glmnet(as.matrix(fullProtPred), as.matrix(fullProtRes), lambda = lassoCV$lambda.min)
+
 lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
+predTrain <- predict(lasso_best, fullProtPred)
+lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 
 ```
 
@@ -232,6 +236,8 @@ MSELM5ProteinTest <- MSE(predTest, testRes)
 
 reg100final <- train(x = fullProtPred, y = fullProtRes, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
 reg100cv <- ((reg100$results)[5, "RMSE"])^2
+predTrain <- predict(reg100final, fullProtPred)
+reg100trainmse <- MSE(predTrain, fullProtRes)
 ```
 
 ```{r}
