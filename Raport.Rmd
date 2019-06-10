@@ -226,20 +226,20 @@ reg100 <- train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), met
 coef(reg100$finalModel, 5)
 # Let's try out hold out method first.
 
-predProt <- paste(predictors.protein, collapse = "+")
-form <- as.formula(paste("Y ~", predProt))
-
 predTrain <- predict(reg100, as.data.frame(train))
 MSELM5ProteinTrain <- MSE(predTrain, res)
 predTest <- predict(reg100, as.data.frame(test))
 MSELM5ProteinTest <- MSE(predTest, testRes)
 
-lm5Prot <- lm(form, as.data.frame(train))
 ```
 
 ```{r}
 # In the end, I decide to go with the 5 predictors. From MSE we can see that lasso tends to underfit and so does stepAIC. Let's see the VIF histogram!
+predProt <- paste(predictors.protein, collapse = "+")
+form <- as.formula(paste("Y ~", predProt))
+lm5Prot <- lm(form, as.data.frame(train))
 
+hist(vif(lm5Prot))
 
 
 ```
