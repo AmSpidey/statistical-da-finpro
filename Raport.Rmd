@@ -132,69 +132,6 @@ MSELassoProtTrain <- MSE(predTrain, res)
 ```
 
 ```{r}
-# stepAIC done on nonzero parameters from lasso
-subData <- lasso_non_zeroes(lasso_best, as.data.frame(data.train.prot))
-sub <- sep_by_indx(train_indxs, subData)
-                        
-subTrain <- sub$train
-subTest <- sub$test
-
-empty.mod <- lm(Y ~ 1, data = subTrain)
-all.mod <- lm(Y ~ ., data = subTrain)
-
-stepaic <- quiet(stepAIC(empty.mod, direction="forward",
-    scope=list(lower=empty.mod,
-        upper=all.mod)
-    ))
-stepaic$residuals
-
-predTrain <- predict(stepaic, newdata = sub$train)
-MSEBICProt <- MSE(predTrain, res)
-sub$subTest
-predTest <- predict(stepaic, newdata = sub$test)
-MSEBICProtTest <- MSE(predTest, testRes)
-
-# Duzo wiekszy overfitting.
-
-```
-
-
-```{r}
-# stepAIC cv
-# I had problems using caret, so I implemented cross-validation myself.
-
-k <- 10
-cv_data <- subData
-div <- cut(1:nrow(cv_data), 10, labels = FALSE)
-div <- sample(div, length(div))
-test.errs <- numeric(10)
-train.errs <- numeric(10)
-
-for (i in 1:k) {
-  train_indx <- which(div != i)
-  test_indx <- which(div == i)
-  
-  empty.mod <- lm(Y ~ 1, data = cv_data, subset = train_indx)
-  all.mod <- lm(Y ~ ., data = cv_data, subset = train_indx)
-  model <- quiet(stepAIC(empty.mod, direction="forward",
-      scope=list(lower=empty.mod,
-          upper=all.mod)
-      ))
-  
-  train.err <- mean(model$residuals**2)
-  
-  pred <- predict(model, newdata=cv_data[test_indx, ])
-  test.err <- mean((pred - cv_data[test_indx, "Y"])**2)
-  test.errs[i] <- test.err
-  train.errs[i] <- train.err
-}
-
-aic.prot.cv.err <- mean(test.errs)
-cv.tr <- mean(train.errs)
-
-```
-
-```{r}
 # lasso cv
 
 lassoCV <- cv.glmnet(as.matrix(fullProtPred), as.matrix(fullProtRes), nfolds = 10)
@@ -255,13 +192,12 @@ histProt <- hist(vif(lm5Prot))
 Let's create a table with crossvalidation results of each method.
 
 ```{r}
-m <- 3
+m <- 2
 protCVs <- data.frame(matrix(ncol = m, nrow = 1))
-x <- c("lasso", "stepAIC after lasso feat. sel.", "Leap forward")
+x <- c("lasso", "Leap forward")
 colnames(protCVs) <- x
 protCVs[1] <- lasso.prot.cv.err
-protCVs[2] <- aic.prot.cv.err
-protCVs[3] <- reg100cv
+protCVs[2] <- reg100cv
 protCVs
 ```
 I am choosing leapForward, even though stepAIC has much better results. Why? Because stepAIC shows overfitting and leap forward has much less overfitting (comparing MSE on train and test).
@@ -304,7 +240,12 @@ MSELassoCancTrain <- MSE(predTrain, res)
 # lasso cv
 
 lassoCV <- cv.glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), nfolds = 10, alpha = 1)
+lasso_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = lassoCV$lambda.min)
+
 lasso.canc.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
+
+predTrain <- predict(lasso_best, fullCancPred)
+lasso.canc.train.err <- MSE(predTrain, fullCancRes)
 
 ```
 
@@ -328,7 +269,11 @@ min(lasso$cvm)
 #ridge cv
 
 ridgeCV <- cv.glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), nfolds = 10, alpha = 0)
+ridge_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = ridgeCV$lambda.min)
+
 ridge.canc.cv.err <- (ridgeCV$cvm[ridgeCV$lambda == ridgeCV$lambda.min])
+predTrain <- predict(ridge_best, fullCancPred)
+ridge.canc.train.err <- MSE(predTrain, fullCancRes)
 
 ```
 
@@ -349,7 +294,8 @@ MSERanForCancerTrain <- MSE(predTrain, res)
 
 cancerRandomForest3 <- randomForest(x = fullCancPred, y = fullCancRes)
 pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
-
+predTrain <- predict(cancerRandomForest3, fullCancPred)
+rf.canc.train.err <- MSE(predTrain, fullCancRes)
 
 ```
 
