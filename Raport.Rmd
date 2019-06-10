@@ -7,6 +7,7 @@ ANALIZA ZMIENNYCH OBJAŚNIAJĄCYCH
 Protein: Zmienne są typu ilościowego. VIF pokazuje że wybrane predyktory są nieistotnie skolerowane.
 Cancer: Zmienne są typu ilościowego.
 W obu zastosowałam Lasso. Predyktorów było dużo więcej niż obserwacji, więc chciałam usunąć te mniej znaczące. Oprócz tego VIF.
+Często stosuję tzw. holdout method. Powód jest taki że nieco łatwiej dostrzec, czy mamy overfitting czy underfitting. Zachowałam to w tym skrypcie.
 
 ```{r}
 library(glmnet)
@@ -218,18 +219,21 @@ lasso.prot.cv.err <- lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min]
 # choosing most important 5 predictors with leapForward.
 reg <- regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward")
 sum <- summary(reg)
+sum$rsq
 predictors.protein <- names(coef(reg,5))[-1]
 save(predictors.protein, file = "nowakowska.RData")
 load("nowakowska.RData")
 ```
 
 ```{r}
-chuj <- train(x = data, y= res, method = "leapForward", tuneGrid = expand.grid(nvmax = 5))
+# Trying to choose more predictors to see how it works out for us.
 
-ciul <- predict(chuj, testData)
-MSE(ciul, testRes)
-kupa <- predict(chuj, data)
-MSE(kupa, res)
+trCtrl = trainControl(method = "cv", number = 10)
+reg100 <- train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
+# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5.
+
+# Let's try out hold out method first.
+
 
 
 ```
@@ -300,33 +304,6 @@ MSERanFor2Cancer <- MSE(pred, testRes)
 MSERanForCancer2Train <- MSE(predTrain, res)
 ```
 
-
-```{r}
-# randomForest cv
-k <- 10
-cv_data <- data.train.canc
-div <- cut(1:nrow(cv_data), 10, labels = FALSE)
-div <- sample(div, length(div))
-test.errs <- numeric(10)
-train.errs <- numeric(10)
-
-for (i in 1:k) {
-  print(i)
-  train_indx <- which(div != i)
-  test_indx <- which(div == i)
-  
-  model <- randomForest(x = cv_data[train_indx, -ncol(cv_data)], y = cv_data[train_indx, ncol(cv_data)])
-  #train.err <- mean(model$residuals**2)
-  
-  pred <- predict(model, newdata=cv_data[test_indx, ])
-  test.err <- mean((pred - cv_data[test_indx, "Y"])**2)
-  test.errs[i] <- test.err
-  #train.errs[i] <- train.err
-}
-
-rf.canc.cv.err <- mean(test.errs)
-
-```
 
 ```{r}
 # random forest on whole training set to take out the mse
