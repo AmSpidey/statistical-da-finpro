@@ -238,7 +238,7 @@ reg100cv <- ((reg100$results)[5, "RMSE"])^2
 # In the end, I decide to go with the 5 predictors. From MSE we can see that lasso tends to underfit and so does stepAIC. Let's see the VIF histogram!
 predProt <- paste(predictors.protein, collapse = "+")
 form <- as.formula(paste("Y ~", predProt))
-lm5Prot <- lm(form, as.data.frame(train))
+lm5Prot <- lm(form, as.data.frame(data.train.prot))
 
 # VIF HISTOGRAM FOR PROTEIN
 
@@ -347,7 +347,7 @@ pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
 ```
 
 ```{r}
-# Most important 100 predictors chosen.
+# Most important 100 predictors chosen with lasso.
 canc100_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), alpha = 1)
 canc100_best$df
 canc100_best$lambda[39]
@@ -357,6 +357,19 @@ subData <- lasso_non_zeroes(canc100_best, as.data.frame(data.train.canc))
 predictors.cancer <- colnames(subData[-101])
 
 ```
+
+```{r}
+# Vif for cancer
+predCanc <- paste(predictors.cancer, collapse = "+")
+form <- as.formula(paste("Y ~", predCanc))
+lm100Canc <- lm(form, as.data.frame(data.train.canc))
+
+# VIF HISTOGRAM FOR PROTEIN
+
+histCanc <- hist(vif(lm100Canc))
+histCanc
+```
+
 
 
 
