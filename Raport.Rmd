@@ -262,6 +262,7 @@ I am choosing leapForward, even though stepAIC has much better results. Why? Bec
 
 ```{r}
 pred.protein <- predict(reg100, data.test.prot)
+
 ```
 
 
@@ -327,6 +328,7 @@ ridge.canc.cv.err <- (ridgeCV$cvm[ridgeCV$lambda == ridgeCV$lambda.min])
 
 ```{r}
 # randomForest
+
 cancerRandomForest <- randomForest(x = data, y = res)
 
 pred <- predict(cancerRandomForest, newdata = testData)
@@ -336,24 +338,10 @@ MSERanForCancerTrain <- MSE(predTrain, res)
 
 ```
 
-
-```{r}
-# Let's try random forest on predictors from lasso. Maybe Random Forest works better with carefully chosen predictors.
-sub <- lasso_non_zeroes(lasso_best, data)
-subTrain <- sub$subTrain
-
-cancerRandomForest2 <- randomForest(x = subTrain[,-ncol(subTrain)], y = subTrain[,ncol(subTrain)])
-pred <- predict(cancerRandomForest2, newdata = sub$subTest)
-predTrain <- predict(cancerRandomForest2, newdata = sub$subTrain)
-MSERanFor2Cancer <- MSE(pred, testRes)
-MSERanForCancer2Train <- MSE(predTrain, res)
-```
-
-
 ```{r}
 # random forest on whole training set to take out the mse
 
-cancerRandomForest3 <- randomForest(x = data.train.canc[,-ncol(data.train.canc)], y = data.train.canc[,ncol(data.train.canc)])
+cancerRandomForest3 <- randomForest(x = fullCancPred, y = fullCancRes)
 pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
 
 ```
@@ -365,12 +353,11 @@ comboInfo <- findLinearCombos(data.train.canc[-ncol(data.train.canc)])
 indCanc <- data.train.canc[, -comboInfo$remove]
 
 cancerLm <- lm (Y ~., data = indCanc)
+library(lm.beta)
 stCancLm <- lm.beta(cancerLm)
 coefs <- coef(stCancLm)
 tail(sort((coefs)),100)
 
-
-?leaps.default
 ```
 
 
