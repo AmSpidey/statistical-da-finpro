@@ -344,6 +344,7 @@ MSERanForCancerTrain <- MSE(predTrain, res)
 cancerRandomForest3 <- randomForest(x = fullCancPred, y = fullCancRes)
 pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
 
+
 ```
 
 ```{r}
@@ -364,10 +365,23 @@ predCanc <- paste(predictors.cancer, collapse = "+")
 form <- as.formula(paste("Y ~", predCanc))
 lm100Canc <- lm(form, as.data.frame(data.train.canc))
 
-# VIF HISTOGRAM FOR PROTEIN
+# VIF HISTOGRAM FOR CANCER
 
 histCanc <- hist(vif(lm100Canc))
 histCanc
+```
+
+```{r}
+# Table of cross-validation for Cancer
+
+m <- 3
+cancCVs <- data.frame(matrix(ncol = m, nrow = 1))
+x <- c("lasso", "ridge", "random forest")
+colnames(cancCVs) <- x
+cancCVs[1] <- lasso.canc.cv.err
+cancCVs[2] <- ridge.canc.cv.err
+cancCVs[3] <- pseu.rf.canc.cv.err
+cancCVs
 ```
 
 
