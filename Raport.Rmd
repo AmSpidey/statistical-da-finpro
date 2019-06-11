@@ -74,7 +74,7 @@ bic <- function (train) {
 
 lasso_non_zeroes <- function (lasso_best, yX) {
   cs <- coef(lasso_best)
-  nonzero <- (which(cs[,1]!=0) - 1)[-1]
+  nonzero <- (which(cs[,1]!=0) - 1)[-1] # Avoid the intercept
   r <- rownames(as.data.frame(nonzero))
   return(cbind(yX[,nonzero], yX[ncol(yX)]))
 }
@@ -153,7 +153,7 @@ lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 
 
 ```{r}
-# choosing most important 5 predictors with leapForward.
+# choosing most important 5 predictors with leapForward. It searches for the best model of size 5 and that's the reason I chose it.
 reg <- quiet(regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward"))
 sum <- summary(reg)
 sum$rsq
@@ -167,7 +167,7 @@ Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
 
 trCtrl = trainControl(method = "cv", number = 10)
 reg100 <- quiet(train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl))
-# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5
+# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5. Below code will be using 5 even if this happened to return 6 as the optimal number! I did this that way for some consistency.
 
 
 # Let's try out hold out method first.
@@ -209,11 +209,10 @@ protCVs[1] <- lasso.prot.cv.err
 protCVs[2] <- reg100cv
 protCVs
 ```
-I am choosing leapForward, even though stepAIC has much better results. Why? Because stepAIC shows overfitting and leap forward has much less overfitting (comparing MSE on train and test).
+I am choosing leapForward, even though lasso has better results. Why? Because lasso shows overfitting and leap forward has much less overfitting (comparing MSE on train and test).
 
 ```{r}
-pred.protein <- predict(reg100, data.test.prot)
-
+pred.protein <- predict(reg100final, data.test.prot)
 ```
 
 
@@ -348,7 +347,7 @@ cancCVs[3] <- pseu.rf.canc.cv.err
 cancCVs
 ```
 
-Finally I decide to use lasso because it seems to be having smaller difference between train and test error relatively to ridge.
+Finally I decide to use lasso because it seems to be having smaller difference between train and test error relatively to ridge. Plus, it has a pretty neat cv error.
 
 ```{r}
 pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
