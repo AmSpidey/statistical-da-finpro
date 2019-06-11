@@ -13,6 +13,8 @@ Często stosuję tzw. holdout method. Powód jest taki że nieco łatwiej dostrz
 # Here I will load the appropiate vectors and histograms. The script will later recompute them.
 load("for_raport.RData")
 load("nowakowska.RData")
+hist(histCanc)
+hist(histProt)
 ```
 
 
@@ -176,6 +178,8 @@ MSELM5ProteinTrain <- MSE(predTrain, res)
 predTest <- predict(reg100, as.data.frame(test))
 MSELM5ProteinTest <- MSE(predTest, testRes)
 
+# CV
+
 reg100final <- train(x = fullProtPred, y = fullProtRes, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
 reg100cv <- ((reg100$results)[5, "RMSE"])^2
 predTrain <- predict(reg100final, fullProtPred)
@@ -320,14 +324,16 @@ predictors.cancer <- colnames(subData[-101])
 
 ```{r}
 # Vif for cancer
+subData <- lasso_non_zeroes(lasso_best, as.data.frame(data.train.canc))
+
 predCanc <- paste(predictors.cancer, collapse = "+")
 form <- as.formula(paste("Y ~", predCanc))
-lm100Canc <- lm(form, as.data.frame(data.train.canc))
+bestLmCanc <- lm(form, as.data.frame(data.train.canc))
 
 # VIF HISTOGRAM FOR CANCER
 
-hist(vif(lm100Canc))
-histCanc <- vif(lm100Canc)
+hist(vif(bestLmCanc))
+histCanc <- vif(bestLmCanc)
 ```
 
 ```{r}
