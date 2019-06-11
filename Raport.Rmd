@@ -255,8 +255,6 @@ lasso.canc.train.err <- MSE(predTrain, fullCancRes)
 
 ```
 
-
-
 ```{r}
 #ridge
 ridge <- cv.glmnet(as.matrix(data), as.matrix(res), nfolds = 10, alpha = 0)
