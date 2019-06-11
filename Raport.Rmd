@@ -190,7 +190,8 @@ lm5Prot <- lm(form, as.data.frame(data.train.prot))
 
 # VIF HISTOGRAM FOR PROTEIN
 
-histProt <- hist(vif(lm5Prot))
+hist(vif(lm5Prot))
+histProt <- vif(lm5Prot)
 
 ```
 
@@ -325,8 +326,8 @@ lm100Canc <- lm(form, as.data.frame(data.train.canc))
 
 # VIF HISTOGRAM FOR CANCER
 
-histCanc <- hist(vif(lm100Canc))
-histCanc
+hist(vif(lm100Canc))
+histCanc <- vif(lm100Canc)
 ```
 
 ```{r}
