@@ -106,9 +106,6 @@ categorical(data.train.canc)
 # Sprawdzmy czy brakuje jakichs wartosci.
 any(sapply(data.train.prot, is.na))
 any(sapply(data.train.canc, is.na))
-# Tak tez moge szybko sprawdzic czy zmienne sa ilosciowe. Gdyby nie byly, byloby mniej wartosci unikalnych.
-length(unique(data.train.prot))
-length(unique(data.train.canc[,2]))
 ```
 
 ```{r}
