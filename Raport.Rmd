@@ -10,11 +10,14 @@ W obu zastosowałam Lasso. Predyktorów było dużo więcej niż obserwacji, wi�
 Często stosuję tzw. holdout method. Powód jest taki że nieco łatwiej dostrzec, czy mamy overfitting czy underfitting. Zachowałam to w tym skrypcie.
 
 ```{r}
-# Here I will load the appropiate vectors and histograms. The script will later recompute them.
+# Here I will load the appropiate vectors and histograms and tables of cross-validation. The script will later recompute them.
+# Random forest takes the longest time to compute. I do advise to skip it.
 load("for_raport.RData")
 load("nowakowska.RData")
 hist(histCanc)
 hist(histProt)
+protCVs
+cancCVs
 ```
 
 
@@ -153,7 +156,6 @@ lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 # choosing most important 5 predictors with leapForward. It searches for the best model of size 5 and that's the reason I chose it.
 reg <- quiet(regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward"))
 sum <- summary(reg)
-sum$rsq
 predictors.protein <- names(coef(reg,5))[-1]
 ```
 
@@ -166,7 +168,6 @@ trCtrl = trainControl(method = "cv", number = 10)
 reg100 <- quiet(train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl))
 # seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5. Below code will be using 5 even if this happened to return 6 as the optimal number! I did this that way for some consistency.
 
-
 # Let's try out hold out method first.
 
 predTrain <- predict(reg100, as.data.frame(train))
@@ -177,13 +178,13 @@ MSELM5ProteinTest <- MSE(predTest, testRes)
 # CV
 
 reg100final <- train(x = fullProtPred, y = fullProtRes, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
-reg100cv <- ((reg100$results)[5, "RMSE"])^2
+reg100cv <- ((reg100final$results)[5, "RMSE"])^2
 predTrain <- predict(reg100final, fullProtPred)
 reg100trainmse <- MSE(predTrain, fullProtRes)
 ```
 
 ```{r}
-# In the end, I decide to go with the 5 predictors. From MSE we can see that lasso tends to underfit and so does stepAIC. Let's see the VIF histogram!
+# In the end, I decide to go with the 5 predictors. From MSE we can see that lasso tends to overfit and so does stepAIC. Let's see the VIF histogram!
 predProt <- paste(predictors.protein, collapse = "+")
 form <- as.formula(paste("Y ~", predProt))
 lm5Prot <- lm(form, as.data.frame(data.train.prot))
@@ -200,7 +201,7 @@ Let's create a table with crossvalidation results of each method.
 ```{r}
 m <- 2
 protCVs <- data.frame(matrix(ncol = m, nrow = 1))
-x <- c("lasso", "Leap forward")
+x <- c("lasso", "leap forward")
 colnames(protCVs) <- x
 protCVs[1] <- lasso.prot.cv.err
 protCVs[2] <- reg100cv
@@ -284,7 +285,7 @@ ridge.canc.train.err <- MSE(predTrain, fullCancRes)
 ```
 
 ```{r}
-# randomForest
+# randomForest. Random forest take a lot of time to compute. You can skip this section (it's just hold-out method) and go to the next one with k-fold crossval.
 
 cancerRandomForest <- randomForest(x = data, y = res)
 
@@ -309,7 +310,7 @@ rf.canc.train.err <- MSE(predTrain, fullCancRes)
 # Most important 100 predictors chosen with lasso.
 canc100_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), alpha = 1)
 canc100_best$df
-canc100_best$lambda[39]
+canc100_best$lambda[39] # still too little predictors... Let's tweak the lambda a little.
 canc100_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = 0.014, alpha = 1)
 canc100_best$df
 subData <- lasso_non_zeroes(canc100_best, as.data.frame(data.train.canc))
@@ -353,7 +354,7 @@ pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.
 ```{r}
 # Saving the histograms and predictors to separate files.
 save(predictors.protein, pred.protein, pred.cancer, file = "nowakowska.RData")
-save(histCanc, histProt, file = "for_raport.RData")
+save(histCanc, histProt, protCVs, cancCVs, file = "for_raport.RData")
 
 ```
 
