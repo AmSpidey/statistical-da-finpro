@@ -27,7 +27,6 @@ library(MASS)
 library("randomForest")
 library(caret)
 library(leaps)
-library(pls)
 ```
 
 ```{r}
@@ -326,7 +325,7 @@ predictors.cancer <- colnames(subData[-101])
 # Vif for cancer
 subData <- lasso_non_zeroes(lasso_best, as.data.frame(data.train.canc))
 
-predCanc <- paste(predictors.cancer, collapse = "+")
+predCanc <- paste(colnames(subData[-ncol(subData)]), collapse = "+")
 form <- as.formula(paste("Y ~", predCanc))
 bestLmCanc <- lm(form, as.data.frame(data.train.canc))
 
