@@ -166,7 +166,7 @@ Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
 trCtrl = trainControl(method = "cv", number = 10)
 reg100 <- quiet(train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl))
 # seems like the optimal number of predictors is 5 or 6 looking at RMSE statistics (depends on the run)
-reg100
+
 # Let's try out hold out method first.
 
 predTrain <- predict(reg100, as.data.frame(train))
@@ -178,13 +178,14 @@ MSELM5ProteinTest <- MSE(predTest, testRes)
 
 reg100final <- train(x = fullProtPred, y = fullProtRes, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
 reg100cv <- (min((reg100final$results)[, "RMSE"]))^2
+indMin <- which((reg100final$results)[,"RMSE"] == (min((reg100final$results)[, "RMSE"])))
 predTrain <- predict(reg100final, fullProtPred)
 reg100trainmse <- MSE(predTrain, fullProtRes)
 ```
 
 ```{r}
-# In the end, I decide to go with the 5 predictors. From MSE we can see that lasso tends to overfit and so does stepAIC. Let's see the VIF histogram!
-predProt <- paste(predictors.protein, collapse = "+")
+# In the end, I decide to go with the 5-6 predictors. From MSE we can see that lasso tends to overfit and so does stepAIC. Let's see the VIF histogram!
+predProt <- paste(names(coef(reg,indMin))[-1], collapse = "+")
 form <- as.formula(paste("Y ~", predProt))
 lm5Prot <- lm(form, as.data.frame(data.train.prot))
 
