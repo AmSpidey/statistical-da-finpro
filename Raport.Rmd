@@ -298,7 +298,8 @@ MSERanForCancerTrain <- MSE(predTrain, res)
 # random forest on whole training set to take out the mse
 
 cancerRandomForest3 <- randomForest(x = fullCancPred, y = fullCancRes)
-pseu.rf.canc.cv.err <- mean(cancerRandomForest3$mse)
+pseu.rf.canc.cv.err <- (cancerRandomForest3$mse)[length(cancerRandomForest3$mse)]
+
 predTrain <- predict(cancerRandomForest3, fullCancPred)
 rf.canc.train.err <- MSE(predTrain, fullCancRes)
 
