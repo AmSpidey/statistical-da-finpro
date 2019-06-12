@@ -92,10 +92,10 @@ quiet <- function(x) {
 
 ```{r}
 
-load("~/SADFinal/protein.RData")
+load("protein.RData")
 data.train.prot <- data.train
 data.test.prot <- data.test
-load("~/SADFinal/cancer.RData")
+load("cancer.RData")
 data.train.canc <- data.train
 data.test.canc <- data.test
 
