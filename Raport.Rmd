@@ -49,7 +49,6 @@ sep_train_test <- function (data.train) {
   smp_size <- floor(0.75 * nrow(trDF))
   
   ## set the seed to make the partition reproducible
-  set.seed(123)
   train_ind <- sample(seq_len(nrow(trDF)), size = smp_size)
   
   return(train_ind)
@@ -166,8 +165,8 @@ Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
 
 trCtrl = trainControl(method = "cv", number = 10)
 reg100 <- quiet(train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl))
-# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once).
-
+# seems like the optimal number of predictors is 5 or 6 looking at RMSE statistics (depends on the run)
+reg100
 # Let's try out hold out method first.
 
 predTrain <- predict(reg100, as.data.frame(train))
