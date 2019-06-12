@@ -166,7 +166,7 @@ Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
 
 trCtrl = trainControl(method = "cv", number = 10)
 reg100 <- quiet(train(x = data, y = res, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl))
-# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once). Let's choose 5. Below code will be using 5 even if this happened to return 6 as the optimal number! I did this that way for some consistency.
+# seems like the optimal number of predictors is 5 looking at RMSE statistics (I ran this around 10 times and got 6 parameters once).
 
 # Let's try out hold out method first.
 
