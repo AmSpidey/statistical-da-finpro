@@ -178,7 +178,6 @@ MSELM5ProteinTest <- MSE(predTest, testRes)
 # CV
 
 reg100final <- train(x = fullProtPred, y = fullProtRes, tuneGrid = expand.grid(nvmax = c(1:100)), method = "leapForward", trControl = trCtrl)
-reg100final
 reg100cv <- (min((reg100final$results)[, "RMSE"]))^2
 predTrain <- predict(reg100final, fullProtPred)
 reg100trainmse <- MSE(predTrain, fullProtRes)
