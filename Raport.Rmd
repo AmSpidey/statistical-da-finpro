@@ -5,7 +5,7 @@ output: html_notebook
 
 ANALIZA ZMIENNYCH OBJAŚNIAJĄCYCH
 Protein: Zmienne są typu ilościowego. VIF pokazuje że wybrane predyktory są nieistotnie skolerowane.
-Cancer: Zmienne są typu ilościowego.
+Cancer: Zmienne są typu ilościowego.VIF pokazuje że wybrane predyktory są nieistotnie skolerowane.
 W obu zastosowałam Lasso. Predyktorów było dużo więcej niż obserwacji, więc chciałam usunąć te mniej znaczące. Oprócz tego VIF.
 Często stosuję tzw. holdout method. Powód jest taki że nieco łatwiej dostrzec, czy mamy overfitting czy underfitting. Zachowałam to w tym skrypcie.
 
