@@ -157,7 +157,9 @@ lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 # choosing most important 5 predictors with leapForward. It searches for the best model of size 5 and that's the reason I chose it.
 reg <- quiet(regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward"))
 sum <- summary(reg)
-predictors.protein <- as.data.frame(names(coef(reg,5))[-1]) # TABLE OF THE MOST IMPORTANT 5 PREDICTORS FOR PROTEIN
+predictors.protein.table <- as.data.frame(names(coef(reg,5))[-1]) # TABLE OF THE MOST IMPORTANT 5 PREDICTORS FOR PROTEIN
+predictors.protein <- names(coef(reg,5))[-1]
+is.vector(predictors.protein)
 names(predictors.protein)[1] <- "predictors of protein"
 predictors.protein
 ```
@@ -256,6 +258,7 @@ lasso.canc.train.err <- MSE(predTrain, fullCancRes)
 # LASSO PRED VECTOR
 # I will explain later why I use lasso for the predictions.
 pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
+pred.cancer <- as.vector(pred.cancer)
 
 ```
 
