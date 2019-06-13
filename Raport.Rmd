@@ -187,7 +187,7 @@ reg100trainmse <- MSE(predTrain, fullProtRes)
 
 # PREDICTION VECTOR FOR PROTEIN
 pred.protein <- predict(reg100final, data.test.prot)
-help(predict)
+is.vector(pred.protein)
 ```
 
 ```{r}
