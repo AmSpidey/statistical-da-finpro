@@ -157,7 +157,7 @@ lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 # choosing most important 5 predictors with leapForward. It searches for the best model of size 5 and that's the reason I chose it.
 reg <- quiet(regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward"))
 sum <- summary(reg)
-predictors.protein <- names(coef(reg,5))[-1] # TABLE OF THE MOST IMPORTANT 5 PREDICTORS FOR PROTEIN
+predictors.protein <- as.data.frame(names(coef(reg,5))[-1]) # TABLE OF THE MOST IMPORTANT 5 PREDICTORS FOR PROTEIN
 ```
 
 Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
@@ -315,7 +315,7 @@ canc100_best$lambda[39] # still too little predictors... Let's tweak the lambda 
 canc100_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda = 0.014, alpha = 1)
 canc100_best$df
 subData <- lasso_non_zeroes(canc100_best, as.data.frame(data.train.canc))
-predictors.cancer <- colnames(subData[-101]) # TABLE OF THE MOST IMPORTANT 100 PREDICTORS FOR CANCER
+predictors.cancer <- as.data.frame(colnames(subData[-101])) # TABLE OF THE MOST IMPORTANT 100 PREDICTORS FOR CANCER
 
 ```
 
