@@ -100,7 +100,7 @@ load("cancer.RData")
 data.train.canc <- data.train
 data.test.canc <- data.test
 
-set.seed(123)
+set.seed(124)
 
 # ANALIZA ZMIENNYCH OBJASNIAJCYCH:
 # Zmienne sa typu ilosciowego zarowno w protein jak i w cancer. Zmiennych objasniajacych jest wiecej niz obserwacji (dane wysokowymiarowe)
@@ -149,6 +149,8 @@ lasso_best <- glmnet(as.matrix(fullProtPred), as.matrix(fullProtRes), lambda = l
 lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullProtPred))
 lasso.prot.train.err <- MSE(predTrain, fullProtRes)
+
+pred.protein <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.prot))
 
 ```
 
@@ -207,10 +209,10 @@ protCVs[1] <- lasso.prot.cv.err
 protCVs[2] <- reg100cv
 protCVs
 ```
-I am choosing lasso, since it has better results. Leap forward seems to perform worse on train test, too.
+I am choosing lasso, since it has better results. Leap forward seems to perform worse on train test, too. Lasso seems to have better generalization properties.
 
 ```{r}
-pred.protein <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.prot))
+
 ```
 
 
@@ -253,9 +255,6 @@ lasso.canc.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullCancPred))
 lasso.canc.train.err <- MSE(predTrain, fullCancRes)
 
-# I will explain later why I use lasso for the predictions.
-pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
-
 ```
 
 ```{r}
@@ -282,6 +281,9 @@ ridge.canc.cv.err <- (ridgeCV$cvm[ridgeCV$lambda == ridgeCV$lambda.min])
 
 predTrain <- predict(ridge_best, s = ridgeCV$lamba.min, newx = as.matrix(fullCancPred))
 ridge.canc.train.err <- MSE(predTrain, fullCancRes)
+
+# I will explain later why I use ridge for the predictions.
+pred.cancer <- predict(ridge_best, s = ridgeCV$lamba.min, newx = as.matrix(data.test.canc))
 
 ```
 
@@ -347,7 +349,7 @@ cancCVs[3] <- pseu.rf.canc.cv.err
 cancCVs
 ```
 
-Finally I decide to use lasso because it seems to be having smaller difference between train and test error relatively to ridge. Plus, it has a pretty neat cv error.
+Finally I decide to use ridge because it seems to be having smaller test error relatively to lasso. The differences between test and train error seem less important here.
 
 ```{r}
 # Saving the histograms and predictors to separate files.
