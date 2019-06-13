@@ -160,8 +160,6 @@ sum <- summary(reg)
 predictors.protein <- as.data.frame(names(coef(reg,5))[-1]) # TABLE OF THE MOST IMPORTANT 5 PREDICTORS FOR PROTEIN
 ```
 
-Tutaj zastosuję metodę której ostatecznie użyję do predykcji.
-
 ```{r}
 # Trying to choose more predictors to see how it works out for us.
 
@@ -350,10 +348,6 @@ cancCVs
 ```
 
 Finally I decide to use lasso because it seems to be having smaller difference between train and test error relatively to ridge. Plus, it has a pretty neat cv error.
-
-```{r}
-
-```
 
 ```{r}
 # Saving the histograms and predictors to separate files.
