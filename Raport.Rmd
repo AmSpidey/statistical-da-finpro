@@ -147,7 +147,7 @@ lassoCV <- cv.glmnet(as.matrix(fullProtPred), as.matrix(fullProtRes), nfolds = 1
 lasso_best <- glmnet(as.matrix(fullProtPred), as.matrix(fullProtRes), lambda = lassoCV$lambda.min)
 
 lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
-predTrain <- predict(lasso_best, fullProtPred)
+predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullProtPred))
 lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 
 ```
@@ -209,10 +209,10 @@ protCVs[1] <- lasso.prot.cv.err
 protCVs[2] <- reg100cv
 protCVs
 ```
-I am choosing leapForward, even though lasso has better results. Why? Because lasso shows overfitting and leap forward has much less overfitting (comparing MSE on train and test).
+I am choosing lasso, since it has better results. Leap forward seems to perform worse on train test, too.
 
 ```{r}
-pred.protein <- predict(reg100final, data.test.prot)
+pred.protein <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.prot))
 ```
 
 
@@ -254,6 +254,9 @@ lasso.canc.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 
 predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullCancPred))
 lasso.canc.train.err <- MSE(predTrain, fullCancRes)
+
+# I will explain later why I use lasso for the predictions.
+pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
 
 ```
 
@@ -349,7 +352,7 @@ cancCVs
 Finally I decide to use lasso because it seems to be having smaller difference between train and test error relatively to ridge. Plus, it has a pretty neat cv error.
 
 ```{r}
-pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
+
 ```
 
 ```{r}
