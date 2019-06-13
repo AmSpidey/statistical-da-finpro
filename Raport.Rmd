@@ -158,6 +158,8 @@ lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 reg <- quiet(regsubsets(x = data.train.prot[, -ncol(data.train.prot)], y = data.train.prot[, ncol(data.train.prot)], nvmax = 5, really.big=T, method = "forward"))
 sum <- summary(reg)
 predictors.protein <- as.data.frame(names(coef(reg,5))[-1]) # TABLE OF THE MOST IMPORTANT 5 PREDICTORS FOR PROTEIN
+names(predictors.protein)[1] <- "predictors of protein"
+predictors.protein
 ```
 
 ```{r}
@@ -182,6 +184,7 @@ indMin <- which((reg100final$results)[,"RMSE"] == (min((reg100final$results)[, "
 predTrain <- predict(reg100final, fullProtPred)
 reg100trainmse <- MSE(predTrain, fullProtRes)
 
+# PREDICTION VECTOR FOR PROTEIN
 pred.protein <- predict(reg100final, data.test.prot)
 ```
 
@@ -250,6 +253,7 @@ lasso.canc.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullCancPred))
 lasso.canc.train.err <- MSE(predTrain, fullCancRes)
 
+# LASSO PRED VECTOR
 # I will explain later why I use lasso for the predictions.
 pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
 
@@ -314,6 +318,8 @@ canc100_best <- glmnet(as.matrix(fullCancPred), as.matrix(fullCancRes), lambda =
 canc100_best$df
 subData <- lasso_non_zeroes(canc100_best, as.data.frame(data.train.canc))
 predictors.cancer <- as.data.frame(colnames(subData[-101])) # TABLE OF THE MOST IMPORTANT 100 PREDICTORS FOR CANCER
+names(predictors.cancer)[1] = "predictors for cancer"
+predictors.cancer
 
 ```
 
