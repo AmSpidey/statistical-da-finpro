@@ -9,7 +9,7 @@ Cancer: Zmienne są typu ilościowego.VIF pokazuje że wybrane predyktory są ni
 W obu zastosowałam Lasso. Predyktorów było dużo więcej niż obserwacji, więc chciałam usunąć te mniej znaczące.
 W cancer próbowałam ridge, ponieważ na wykładzie proponowano żeby porównywać ze sobą lasso i ridge: czasami nie wiadomo czy zmienna objaśniana zależy od małej liczby predyktorów czy dużej o współczynnikach podobnego rozmiaru. Dodatkowo w cancer zastosowałam regresję random forest dla porównania, ponieważ radzi ona sobie dobrze z dużą iloscią predyktorów wedle różnych źródeł.
 W protein zastosowałam jeszcze leap forward, ponieważ jest to dość szybki sposób żeby sprawdzić, jakie parametry mają największy wpływ na predykcje. Okazało się to też być dobrym modelem.
-Często stosuję tzw. holdout method. Powód jest taki że nieco łatwiej dostrzec, czy mamy overfitting czy underfitting. Zachowałam to w tym skrypcie.
+Często stosuję tzw. holdout method. Powód jest taki że nieco łatwiej dostrzec na początku, czy mamy overfitting czy underfitting. Zachowałam to w tym skrypcie.
 
 ```{r}
 # Here I will load the appropiate vectors and histograms and tables of cross-validation. The script will later recompute them.
@@ -100,7 +100,7 @@ load("cancer.RData")
 data.train.canc <- data.train
 data.test.canc <- data.test
 
-set.seed(124)
+set.seed(80085)
 
 # ANALIZA ZMIENNYCH OBJASNIAJCYCH:
 # Zmienne sa typu ilosciowego zarowno w protein jak i w cancer. Zmiennych objasniajacych jest wiecej niz obserwacji (dane wysokowymiarowe)
@@ -150,8 +150,6 @@ lasso.prot.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullProtPred))
 lasso.prot.train.err <- MSE(predTrain, fullProtRes)
 
-pred.protein <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.prot))
-
 ```
 
 
@@ -183,6 +181,8 @@ reg100cv <- (min((reg100final$results)[, "RMSE"]))^2
 indMin <- which((reg100final$results)[,"RMSE"] == (min((reg100final$results)[, "RMSE"])))
 predTrain <- predict(reg100final, fullProtPred)
 reg100trainmse <- MSE(predTrain, fullProtRes)
+
+pred.protein <- predict(reg100final, data.test.prot)
 ```
 
 ```{r}
@@ -209,12 +209,7 @@ protCVs[1] <- lasso.prot.cv.err
 protCVs[2] <- reg100cv
 protCVs
 ```
-I am choosing lasso, since it has better results. Leap forward seems to perform worse on train test, too. Lasso seems to have better generalization properties.
-
-```{r}
-
-```
-
+I am choosing leapForward, even though lasso has better results. Why? Because lasso shows overfitting and leap forward has much less overfitting (comparing MSE on train and test).
 
 
 ```{r}
@@ -255,6 +250,9 @@ lasso.canc.cv.err <- (lassoCV$cvm[lassoCV$lambda == lassoCV$lambda.min])
 predTrain <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(fullCancPred))
 lasso.canc.train.err <- MSE(predTrain, fullCancRes)
 
+# I will explain later why I use lasso for the predictions.
+pred.cancer <- predict(lasso_best, s = lassoCV$lamba.min, newx = as.matrix(data.test.canc))
+
 ```
 
 ```{r}
@@ -281,9 +279,6 @@ ridge.canc.cv.err <- (ridgeCV$cvm[ridgeCV$lambda == ridgeCV$lambda.min])
 
 predTrain <- predict(ridge_best, s = ridgeCV$lamba.min, newx = as.matrix(fullCancPred))
 ridge.canc.train.err <- MSE(predTrain, fullCancRes)
-
-# I will explain later why I use ridge for the predictions.
-pred.cancer <- predict(ridge_best, s = ridgeCV$lamba.min, newx = as.matrix(data.test.canc))
 
 ```
 
@@ -349,7 +344,8 @@ cancCVs[3] <- pseu.rf.canc.cv.err
 cancCVs
 ```
 
-Finally I decide to use ridge because it seems to be having smaller test error relatively to lasso. The differences between test and train error seem less important here.
+Finally I decide to use lasso because it seems to be having smaller difference between train and test error relatively to ridge which points to too many predictors in ridge. Plus, it has a pretty neat cv error. Depending on the seed sometimes lasso performed better.
+
 
 ```{r}
 # Saving the histograms and predictors to separate files.
